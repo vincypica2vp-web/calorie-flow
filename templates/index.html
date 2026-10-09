@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CalorieFlow - Tracker Nutrizionale</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js per lo storico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome per le icone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-500 text-slate-900 p-2 rounded-xl font-bold text-xl flex items-center justify-center w-10 h-10">
+                    <i class="fa-solid fa-fire"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-wide">CalorieFlow</h1>
+            </div>
+            <div class="text-sm bg-slate-700 px-3 py-1.5 rounded-full text-slate-300">
+                <i class="fa-regular fa-calendar-days mr-2"></i><span id="current-date"></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-6 space-y-6">
+
+        <!-- Pannello Riepilogo Giornaliero -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-slate-200">Riepilogo Oggi</h2>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full font-medium">
+                        Obiettivo: <span id="target-kcal-display">2200</span> kcal
+                    </span>
+                    <button onclick="editTargetKcal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-2.5 py-1.5 rounded-xl transition" title="Modifica obiettivo">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <p class="text-xs text-slate-400 mb-1">Assunte</p>
+                    <p class="text-2xl font-bold text-emerald-400" id="total-kcal">0</p>
+                    <p class="text-[10px] text-slate-500">kcal</p>
+                </div>
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <p class="text-xs text-slate-400 mb-1">Proteine</p>
+                    <p class="text-xl font-bold text-blue-400" id="total-pro">0g</p>
+                </div>
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <p class="text-xs text-slate-400 mb-1">Carboidrati</p>
+                    <p class="text-xl font-bold text-amber-400" id="total-carb">0g</p>
+                </div>
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <p class="text-xs text-slate-400 mb-1">Grassi</p>
+                    <p class="text-xl font-bold text-rose-400" id="total-fat">0g</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Inserimento Alimento -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-lg font-semibold text-slate-200 mb-4"><i class="fa-solid fa-plus-circle text-emerald-500 mr-2"></i>Aggiungi Alimento o Piatto</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Cosa hai mangiato? (Descrivi il piatto o l'alimento anche complesso)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="food-input" placeholder="Es: Pizza Margherita, Pasta alla Carbonara, 150g petto di pollo..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+                        <button onclick="analyzeFood()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition flex items-center shadow-lg shadow-emerald-500/20">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Analizza
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Carica Foto -->
+                <div class="flex items-center justify-between border-t border-slate-700/60 pt-4">
+                    <div class="flex items-center space-x-3 text-sm text-slate-400">
+                        <i class="fa-solid fa-camera text-xl text-emerald-400"></i>
+                        <span>Oppure scatta/carica una foto del piatto (Analisi IA)</span>
+                    </div>
+                    <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium px-4 py-2 rounded-xl transition">
+                        <i class="fa-solid fa-upload mr-2"></i> Scegli Foto
+                        <input type="file" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista Alimenti Consumati Oggi -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-slate-200">Alimenti di Oggi</h2>
+                <button onclick="clearToday()" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-trash mr-1"></i> Svuota Giornata</button>
+            </div>
+            <div id="food-list" class="space-y-3">
+                <p class="text-slate-500 text-sm text-center py-6" id="empty-msg">Nessun alimento registrato oggi. Inizia ad aggiungere qualcosa!</p>
+            </div>
+        </div>
+
+        <!-- Sezione Storico e Grafico -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-lg font-semibold text-slate-200 mb-4"><i class="fa-solid fa-chart-line text-emerald-500 mr-2"></i>Storico Ultimi Giorni (Kcal)</h2>
+            <div class="relative h-64 w-full">
+                <canvas id="historyChart"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALE DI ANTEPRIMA CON STIMA AUTOMATICA PESO -->
+    <div id="portion-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden px-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-5">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-scale-balanced text-emerald-400 mr-2"></i>Verifica Grammi e Porzione</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div>
+                <h4 id="modal-food-name" class="font-semibold text-emerald-400 text-base mb-1">Nome Alimento</h4>
+                <p id="modal-food-breakdown" class="text-xs text-slate-400">Dettagli ingredienti</p>
+            </div>
+
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Peso stimato automaticamente dall'IA (puoi modificarlo):</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="modal-grams" value="100" min="1" oninput="recalculateNutrients()" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500">
+                        <span class="text-sm text-slate-400 font-medium">grammi</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-700/55 text-center">
+                    <div class="bg-slate-800 p-2 rounded-lg">
+                        <span class="block text-[10px] text-slate-400">Kcal</span>
+                        <span id="preview-kcal" class="font-bold text-emerald-400 text-sm">0</span>
+                    </div>
+                    <div class="bg-slate-800 p-2 rounded-lg">
+                        <span class="block text-[10px] text-slate-400">Proteine</span>
+                        <span id="preview-pro" class="font-bold text-blue-400 text-sm">0g</span>
+                    </div>
+                    <div class="bg-slate-800 p-2 rounded-lg">
+                        <span class="block text-[10px] text-slate-400">Carb</span>
+                        <span id="preview-carb" class="font-bold text-amber-400 text-sm">0g</span>
+                    </div>
+                    <div class="bg-slate-800 p-2 rounded-lg">
+                        <span class="block text-[10px] text-slate-400">Grassi</span>
+                        <span id="preview-fat" class="font-bold text-rose-400 text-sm">0g</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 pt-2">
+                <button onclick="closeModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium py-2.5 rounded-xl transition">Annulla</button>
+                <button onclick="confirmAndAddFood()" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold py-2.5 rounded-xl transition shadow-lg shadow-emerald-500/20">Aggiungi a Oggi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script di Logica Aggiornato -->
+    <script>
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+
+        const API_BASE_URL = '/api';
+
+        let db = JSON.parse(localStorage.getItem('calorie_flow_data')) || { days: {}, targetKcal: 2200 };
+        if (!db.days[todayStr]) { db.days[todayStr] = { items: [] }; }
+        if (!db.targetKcal) { db.targetKcal = 2200; }
+
+        let currentAnalyzedItem = null;
+
+        function saveData() {
+            localStorage.setItem('calorie_flow_data', JSON.stringify(db));
+        }
+
+        function editTargetKcal() {
+            const newTarget = prompt("Inserisci il tuo nuovo obiettivo di kcal giornaliere:", db.targetKcal);
+            if (newTarget !== null && !isNaN(newTarget) && newTarget.trim() !== "") {
+                db.targetKcal = parseInt(newTarget);
+                saveData();
+                renderUI();
+            }
+        }
+
+        async function analyzeFood() {
+            const inputField = document.getElementById('food-input');
+            const query = inputField.value.trim();
+            if (!query) return;
+
+            const btn = event.currentTarget || document.querySelector('button[onclick="analyzeFood()"]');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Analisi IA...`;
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyze-text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) throw new Error("Errore nella risposta del server");
+
+                const foodData = await response.json();
+                
+                // Salva i dati originali stimati dall'IA inclusi i grammi stimati
+                currentAnalyzedItem = {
+                    name: foodData.name,
+                    initialWeight: foodData.weight || 100,
+                    baseKcal: foodData.kcal,
+                    basePro: foodData.pro,
+                    baseCarb: foodData.carb,
+                    baseFat: foodData.fat,
+                    breakdown: foodData.breakdown
+                };
+
+                openModal();
+                inputField.value = '';
+
+            } catch (error) {
+                console.error("Errore:", error);
+                alert("Impossibile connettersi al backend.");
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            alert("Analisi visiva con IA in corso... Un attimo.");
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyze-image`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error("Errore durante l'analisi dell'immagine");
+
+                const foodData = await response.json();
+                
+                currentAnalyzedItem = {
+                    name: foodData.name,
+                    initialWeight: foodData.weight || 100,
+                    baseKcal: foodData.kcal,
+                    basePro: foodData.pro,
+                    baseCarb: foodData.carb,
+                    baseFat: foodData.fat,
+                    breakdown: foodData.breakdown
+                };
+
+                openModal();
+
+            } catch (error) {
+                console.error("Errore:", error);
+                alert("Errore durante l'elaborazione della foto.");
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        function openModal() {
+            if (!currentAnalyzedItem) return;
+            document.getElementById('modal-food-name').innerText = currentAnalyzedItem.name;
+            document.getElementById('modal-food-breakdown').innerText = currentAnalyzedItem.breakdown;
+            // Imposta nel campo input il peso stimato automaticamente dall'IA
+            document.getElementById('modal-grams').value = currentAnalyzedItem.initialWeight;
+            recalculateNutrients();
+            document.getElementById('portion-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('portion-modal').classList.add('hidden');
+            currentAnalyzedItem = null;
+        }
+
+        function recalculateNutrients() {
+            if (!currentAnalyzedItem) return;
+            const currentGrams = parseFloat(document.getElementById('modal-grams').value) || 0;
+            
+            // Rapporto tra i grammi inseriti (o modificati) e il peso stimato originariamente dall'IA
+            const multiplier = currentGrams / currentAnalyzedItem.initialWeight;
+
+            const finalKcal = Math.round(currentAnalyzedItem.baseKcal * multiplier);
+            const finalPro = (currentAnalyzedItem.basePro * multiplier).toFixed(1);
+            const finalCarb = (currentAnalyzedItem.baseCarb * multiplier).toFixed(1);
+            const finalFat = (currentAnalyzedItem.baseFat * multiplier).toFixed(1);
+
+            document.getElementById('preview-kcal').innerText = finalKcal;
+            document.getElementById('preview-pro').innerText = finalPro + 'g';
+            document.getElementById('preview-carb').innerText = finalCarb + 'g';
+            document.getElementById('preview-fat').innerText = finalFat + 'g';
+        }
+
+        function confirmAndAddFood() {
+            if (!currentAnalyzedItem) return;
+            const grams = parseFloat(document.getElementById('modal-grams').value) || currentAnalyzedItem.initialWeight;
+            const multiplier = grams / currentAnalyzedItem.initialWeight;
+
+            const finalItem = {
+                name: `${currentAnalyzedItem.name} (${grams}g)`,
+                kcal: Math.round(currentAnalyzedItem.baseKcal * multiplier),
+                pro: parseFloat((currentAnalyzedItem.basePro * multiplier).toFixed(1)),
+                carb: parseFloat((currentAnalyzedItem.baseCarb * multiplier).toFixed(1)),
+                fat: parseFloat((currentAnalyzedItem.baseFat * multiplier).toFixed(1)),
+                breakdown: currentAnalyzedItem.breakdown
+            };
+
+            db.days[todayStr].items.push(finalItem);
+            saveData();
+            renderUI();
+            closeModal();
+        }
+
+        function removeItem(index) {
+            db.days[todayStr].items.splice(index, 1);
+            saveData();
+            renderUI();
+        }
+
+        function clearToday() {
+            if (confirm("Vuoi cancellare tutti gli alimenti di oggi?")) {
+                db.days[todayStr].items = [];
+                saveData();
+                renderUI();
+            }
+        }
+
+        function renderUI() {
+            document.getElementById('target-kcal-display').innerText = db.targetKcal;
+
+            const items = db.days[todayStr].items;
+            const listEl = document.getElementById('food-list');
+            const emptyMsg = document.getElementById('empty-msg');
+
+            listEl.innerHTML = '';
+            let totalKcal = 0, totalPro = 0, totalCarb = 0, totalFat = 0;
+
+            if (items.length === 0) {
+                listEl.appendChild(emptyMsg);
+            } else {
+                items.forEach((item, index) => {
+                    totalKcal += item.kcal || 0;
+                    totalPro += item.pro || 0;
+                    totalCarb += item.carb || 0;
+                    totalFat += item.fat || 0;
+
+                    const div = document.createElement('div');
+                    div.className = "bg-slate-900/70 border border-slate-700/60 p-4 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-3";
+                    div.innerHTML = `
+                        <div>
+                            <h3 class="font-semibold text-slate-200 text-base">${item.name}</h3>
+                            <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-circle-info text-emerald-400 mr-1"></i>${item.breakdown}</p>
+                        </div>
+                        <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-end">
+                            <div class="text-right">
+                                <span class="text-emerald-400 font-bold text-lg">${item.kcal}</span> <span class="text-xs text-slate-400">kcal</span>
+                                <div class="text-[11px] text-slate-400 space-x-2">
+                                    <span>P: ${item.pro}g</span>
+                                    <span>C: ${item.carb}g</span>
+                                    <span>G: ${item.fat}g</span>
+                                </div>
+                            </div>
+                            <button onclick="removeItem(${index})" class="text-slate-500 hover:text-rose-400 p-2 transition"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    `;
+                    listEl.appendChild(div);
+                });
+            }
+
+            document.getElementById('total-kcal').innerText = totalKcal;
+            document.getElementById('total-pro').innerText = totalPro.toFixed(1) + 'g';
+            document.getElementById('total-carb').innerText = totalCarb.toFixed(1) + 'g';
+            document.getElementById('total-fat').innerText = totalFat.toFixed(1) + 'g';
+
+            updateChart();
+        }
+
+        let historyChartInstance = null;
+        function updateChart() {
+            const ctx = document.getElementById('historyChart').getContext('2d');
+            const dates = [];
+            const kcals = [];
+            
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                const label = d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' });
+                dates.push(label);
+
+                let dayKcal = 0;
+                if (db.days[dStr] && db.days[dStr].items) {
+                    dayKcal = db.days[dStr].items.reduce((sum, item) => sum + (item.kcal || 0), 0);
+                }
+                kcals.push(dayKcal);
+            }
+
+            if (historyChartInstance) { historyChartInstance.destroy(); }
+
+            historyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Kcal Assunte',
+                        data: kcals,
+                        backgroundColor: '#10b981',
+                        borderRadius: 8,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        renderUI();
+    </script>
+</body>
+</html>
